@@ -126,7 +126,6 @@ def get_sites_for_state(state_url):
         url = baseurl+para
         instance = get_site_instance(url)
         park_instance.append(instance)
-        # print("Fetching")
     return park_instance
 
 
@@ -156,7 +155,7 @@ def get_nearby_places(site_object):
     results_object = resp.json()
     return results_object
 
-CACHE_FILENAME = "nps_cache.json"
+CACHE_FILENAME = "new_cache.json"
 CACHE_DICT = {}
 
 def open_cache():
@@ -187,6 +186,32 @@ def make_request_with_cache(url):
         save_cache(CACHE_DICT)
     return CACHE_DICT[url]
 
+def get_url_with_cache(states_dict, state):
+    CACHE_DICT = open_cache()
+    if state.capitalize() in CACHE_DICT:
+        print("Using cache")
+        pass
+    else:
+        print("making new request")
+        state_url = states_dict[state]
+        # sites_list = get_sites_for_state(state_url)
+        CACHE_DICT[state.capitalize()] = state_url
+        save_cache(CACHE_DICT)
+    return CACHE_DICT[state.capitalize()]
+
+def get_nearby_with_cache(instance):
+    CACHE_DICT = open_cache()
+    if instance.name in CACHE_DICT:
+        print("Using cache")
+        pass
+    else:
+        print("making new request")
+        nearby = get_nearby_places(instance)
+        CACHE_DICT[instance.name] = nearby
+        save_cache(CACHE_DICT)
+    return CACHE_DICT[instance.name]
+
+
 
 if __name__ == "__main__":
     states_dict = build_state_url_dict()
@@ -197,11 +222,12 @@ if __name__ == "__main__":
             break
         else:
             if state.lower() in states_dict:
-                state_url = states_dict[state]
+                state_url = get_url_with_cache(states_dict, state)
+                # sites_list = get_sites_with_cache(states_dict, state)
                 sites_list = get_sites_for_state(state_url)
                 if sites_list != None:
                     print("------------------------------------")
-                    print("List of national sites in Michigan:")
+                    print(f"List of national sites in {state.lower()}:")
                     print("------------------------------------")
                     for i in range(len(sites_list)):
                         print(f"[{i+1}] {sites_list[i].info()}")
@@ -219,12 +245,13 @@ if __name__ == "__main__":
             elif number.isdigit() == True:
                 if 0 < int(number) < (len(sites_list)+1):
                     instance = sites_list[int(number)-1]
-                    nearby = get_nearby_places(instance)
+                    nearby = get_nearby_with_cache(instance)
                     result = nearby["searchResults"]
                     if result != None:
-                        print("------------------------------")
+                        print("---------------------------------")
                         print(f"Places near {instance.name}")
-                        print("------------------------------")
+                        print("---------------------------------")
+                    site_list = []
                     for i in range(len(result)):
                         name = result[i]["name"]
                         if "address" in result[i]["fields"]:
@@ -249,6 +276,9 @@ if __name__ == "__main__":
                 else:
                     print("[Error] Invalid input")
                     continue
+            else:
+                print("[Error] Invalid input")
+                continue
         if second_input == "exit":
             break
 
